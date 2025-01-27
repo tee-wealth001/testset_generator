@@ -150,7 +150,7 @@ import json
 import pandas as pd
 from langchain_core.output_parsers import JsonOutputParser
 from langchain.prompts import PromptTemplate
-from llm_entity import HUG_LLM, TASK_LLM
+from llm_entity import TASK_LLM
 
 # # Load the LLM model
 # huggingface_llm = TASK_LLM
