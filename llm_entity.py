@@ -18,7 +18,7 @@ LLM = ChatGoogleGenerativeAI(
 )
 
 TASK_LLM = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash",
+    model="gemini-1.5-pro",
     api_key=gemini_api_token,
     temperature=0,
     format="json",
@@ -31,8 +31,7 @@ EMBEDDINGS_LLM = GoogleGenerativeAIEmbeddings(
 )
 
 # Creating LLM using LangChain
-def get_llm():
-    return HuggingFaceHub(
+HUG_LLM = HuggingFaceHub(
         repo_id="huggingfaceh4/zephyr-7b-alpha",
         huggingfacehub_api_token=huggingfacehub_api_token,
         model_kwargs={"temperature": 0.2, "max_length": 64, "max_new_tokens": 200}
