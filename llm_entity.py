@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import os
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.llms import HuggingFaceHub
 
 
@@ -10,24 +10,11 @@ load_dotenv()
 gemini_api_token = os.getenv('GEMINI_API_KEY')
 huggingfacehub_api_token = os.getenv('HUGGINGFACEHUB_API_TOKEN')
 
-
-LLM = ChatGoogleGenerativeAI(
-    model="gemini-1.5-pro",
-    api_key=gemini_api_token,
-    temperature=0.2
-)
-
 TASK_LLM = ChatGoogleGenerativeAI(
     model="gemini-1.5-pro",
     api_key=gemini_api_token,
     temperature=0,
     format="json",
-)
-
-EMBEDDINGS_LLM = GoogleGenerativeAIEmbeddings(
-    # model="models/embedding-001",
-    model="models/text-embedding-004",
-    google_api_key=gemini_api_token
 )
 
 # Creating LLM using LangChain
