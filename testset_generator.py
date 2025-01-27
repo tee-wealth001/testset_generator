@@ -152,8 +152,13 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain.prompts import PromptTemplate
 from llm_entity import HUG_LLM, TASK_LLM
 
-# Load the LLM model
-huggingface_llm = TASK_LLM
+# # Load the LLM model
+# huggingface_llm = TASK_LLM
+
+@st.cache_resource
+def load_model():
+    return TASK_LLM  # Load LLM only once
+
 
 st.set_page_config(page_title="Q&A Generator", page_icon="📝", layout="wide")
 
@@ -304,7 +309,7 @@ if st.sidebar.button("Generate Questions"):
     if st.session_state.context.strip():
         context_chunks = split_context(st.session_state.context, chunk_size, overlap=300)
         all_results = []
-        llm = huggingface_llm
+        llm = load_model()
 
         for idx, chunk in enumerate(context_chunks, 1):
             qa_pairs = generate_questions(
