@@ -10,7 +10,7 @@ gemini_api_token = os.getenv('GEMINI_API_KEY')
 huggingfacehub_api_token = os.getenv('HUGGINGFACEHUB_API_TOKEN')
 
 TASK_LLM = ChatGoogleGenerativeAI(
-    model="gemini-1.5-pro",
+    model="gemini-1.5-flash",
     api_key=gemini_api_token,
     temperature=0,
     format="json",
