@@ -11,9 +11,9 @@ def load_model():
     return TASK_LLM  # Load LLM only once
 
 
-st.set_page_config(page_title="Q&A Generator", page_icon="📝", layout="wide")
+st.set_page_config(page_title="Synthetic Testset Generator", page_icon="📝", layout="wide")
 
-st.title("📝 AI-Powered Q&A Generator")
+st.title("📝 AI-Powered Synthetic Testset Generator")
 st.write("Generate questions and answers from your text content effortlessly.")
 
 st.sidebar.header("Settings")
