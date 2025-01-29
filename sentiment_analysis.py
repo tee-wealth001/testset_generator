@@ -21,6 +21,8 @@ import matplotlib.pyplot as plt
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+from nltk.stem import PorterStemmer
+
 import contractions
 
 from dotenv import load_dotenv
