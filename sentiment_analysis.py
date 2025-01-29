@@ -29,6 +29,8 @@ from dotenv import load_dotenv
 import os
 from llm_entity import TASK_LLM
 from langchain.prompts import PromptTemplate
+from textblob import TextBlob
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 
 @st.cache_resource
@@ -78,6 +80,19 @@ def preprocess_text(text, steps):
     if "Remove Extra Whitespaces" in steps:
         text = re.sub(r"\s+", " ", text).strip()
     return text
+
+
+# Function to perform sentiment analysis
+def assign_sentiment(text, method="vader"):
+    if method == "vader":
+        analyzer = SentimentIntensityAnalyzer()
+        score = analyzer.polarity_scores(text)["compound"]
+        return "positive" if score > 0.05 else "negative" if score < -0.05 else "neutral"
+    
+    elif method == "textblob":
+        score = TextBlob(text).sentiment.polarity
+        return "positive" if score > 0 else "negative" if score < 0 else "neutral"
+
 
 
 def analyze_with_llm(results):
