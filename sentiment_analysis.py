@@ -93,8 +93,7 @@ def assign_sentiment(text, method="vader"):
         score = TextBlob(text).sentiment.polarity
         return "positive" if score > 0 else "negative" if score < 0 else "neutral"
 
-
-
+# Function to analyze results with LLM
 def analyze_with_llm(results):
     """
     Sends the results to a Hugging Face LLM for analysis and feedback.
