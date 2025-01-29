@@ -70,58 +70,34 @@ def preprocess_text(text, steps):
         lemmatizer = WordNetLemmatizer()
         tokens = [lemmatizer.lemmatize(word) for word in tokens]
     text = " ".join(tokens)
+    if "Stem words" in steps:
+        stemmer = PorterStemmer()
+        tokens = [stemmer.stem(word) for word in tokens]
     if "Remove Extra Whitespaces" in steps:
         text = re.sub(r"\s+", " ", text).strip()
     return text
 
 
-# def analyze_with_llm(results):
-#     """
-#     Sends the results to a Hugging Face LLM for analysis and feedback.
-#     """
-#     # Format the results into a string
-#     formatted_results = "\n".join(
-#         [
-#             f"Classifier: {name}\n"
-#             + "\n".join([f"{metric}: {value:.2f}" for metric, value in metrics.items()])
-#             for name, metrics in results.items()
-#         ]
-#     )
-
-#     # Define the prompt for the LLM
-#     prompt = f"""
-#     You are an expert in machine learning and model evaluation. 
-#     Please analyze the following classification results and provide insights:
-    
-#     {formatted_results}
-    
-#     Highlight any potential improvements or issues with the results.
-#     """
-
-#     prompt_template = PromptTemplate(
-#         template=prompt,
-#         input_variables=["formatted_results"],
-#     )
-#     question_generator = prompt_template | load_model()
-#     result = question_generator.invoke(
-#         {
-#             "context": formatted_results,
-#         }
-#     )
-#     return result["content"]
-
 def analyze_with_llm(results):
     """
     Sends the results to a Hugging Face LLM for analysis and feedback.
     """
-    formatted_results = "\n".join([
-        f"Classifier: {name}\n" +
-        "\n".join([
-            f"{metric}: {value:.2f}" if isinstance(value, (int, float)) else f"{metric}:\n{value}"  
-            for metric, value in metrics.items()
-        ])
-        for name, metrics in results.items()
-    ])
+    formatted_results = "\n".join(
+        [
+            f"Classifier: {name}\n"
+            + "\n".join(
+                [
+                    (
+                        f"{metric}: {value:.2f}"
+                        if isinstance(value, (int, float))
+                        else f"{metric}:\n{value}"
+                    )
+                    for metric, value in metrics.items()
+                ]
+            )
+            for name, metrics in results.items()
+        ]
+    )
 
     # Define the prompt for the LLM
     prompt = f"""
@@ -144,7 +120,6 @@ def analyze_with_llm(results):
         }
     )
     return result.content
-
 
 
 # Sidebar for inputs
@@ -174,6 +149,7 @@ preprocessing_steps = st.sidebar.multiselect(
         "Remove Emojis",
         "Remove stopwords",
         "Lemmatize words",
+        "Stem words",
         "Remove Extra Whitespaces",
     ],
 )
@@ -330,13 +306,14 @@ if uploaded_file:
                         for name, model_metrics in results.items():
                             st.write(f"## {name}")
                             for metric_name, metric_value in model_metrics.items():
-                                if metric_name != "Confusion Matrix":  
+                                if metric_name != "Confusion Matrix":
                                     # st.write("**Confusion Matrix:**")
-                                    # st.write(pd.DataFrame(metric_value, index=["Actual Negative", "Actual Positive"], 
+                                    # st.write(pd.DataFrame(metric_value, index=["Actual Negative", "Actual Positive"],
                                     #                                 columns=["Predicted Negative", "Predicted Positive"]))
-                                # else:
-                                    st.write(f"**{metric_name}:** {metric_value:.2f}")  # Only format numerical values
-
+                                    # else:
+                                    st.write(
+                                        f"**{metric_name}:** {metric_value:.2f}"
+                                    )  # Only format numerical values
 
                         # Plot confusion matrices for each selected classifier
                         if "Confusion Matrix" in metrics:
