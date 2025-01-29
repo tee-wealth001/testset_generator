@@ -312,21 +312,11 @@ if uploaded_file:
                         st.session_state["results"] = results
 
                         # Display results
-                        # st.write(f"## Metrics Results")
-                        # for name, model_metrics in results.items():
-                        #     st.write(f"## {name}")
-                        #     for metric_name, metric_value in model_metrics.items():
-                        #         st.write(f"**{metric_name}:** {metric_value:.2f}")
-                        # Display results
                         st.write(f"## Metrics Results")
                         for name, model_metrics in results.items():
                             st.write(f"## {name}")
                             for metric_name, metric_value in model_metrics.items():
                                 if metric_name != "Confusion Matrix":
-                                    # st.write("**Confusion Matrix:**")
-                                    # st.write(pd.DataFrame(metric_value, index=["Actual Negative", "Actual Positive"],
-                                    #                                 columns=["Predicted Negative", "Predicted Positive"]))
-                                    # else:
                                     st.write(
                                         f"**{metric_name}:** {metric_value:.2f}"
                                     )  # Only format numerical values
