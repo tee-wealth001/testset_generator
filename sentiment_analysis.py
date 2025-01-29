@@ -256,10 +256,25 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 import contractions
 
+from dotenv import load_dotenv
+import os
+from llm_entity import TASK_LLM
+from langchain.prompts import PromptTemplate
+
+
+@st.cache_resource
+def load_model():
+    return TASK_LLM  # Load LLM only once
+
+
+# Load environment variables
+load_dotenv()
+huggingfacehub_api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+
 # Download NLTK data
-nltk.download("punkt")
-nltk.download("stopwords")
-nltk.download("wordnet")
+# nltk.download("punkt")
+# nltk.download("stopwords")
+# nltk.download("wordnet")
 
 
 # Function to preprocess text
@@ -291,6 +306,78 @@ def preprocess_text(text, steps):
     if "Remove Extra Whitespaces" in steps:
         text = re.sub(r"\s+", " ", text).strip()
     return text
+
+
+# def analyze_with_llm(results):
+#     """
+#     Sends the results to a Hugging Face LLM for analysis and feedback.
+#     """
+#     # Format the results into a string
+#     formatted_results = "\n".join(
+#         [
+#             f"Classifier: {name}\n"
+#             + "\n".join([f"{metric}: {value:.2f}" for metric, value in metrics.items()])
+#             for name, metrics in results.items()
+#         ]
+#     )
+
+#     # Define the prompt for the LLM
+#     prompt = f"""
+#     You are an expert in machine learning and model evaluation. 
+#     Please analyze the following classification results and provide insights:
+    
+#     {formatted_results}
+    
+#     Highlight any potential improvements or issues with the results.
+#     """
+
+#     prompt_template = PromptTemplate(
+#         template=prompt,
+#         input_variables=["formatted_results"],
+#     )
+#     question_generator = prompt_template | load_model()
+#     result = question_generator.invoke(
+#         {
+#             "context": formatted_results,
+#         }
+#     )
+#     return result["content"]
+
+def analyze_with_llm(results):
+    """
+    Sends the results to a Hugging Face LLM for analysis and feedback.
+    """
+    formatted_results = "\n".join([
+        f"Classifier: {name}\n" +
+        "\n".join([
+            f"{metric}: {value:.2f}" if isinstance(value, (int, float)) else f"{metric}:\n{value}"  
+            for metric, value in metrics.items()
+        ])
+        for name, metrics in results.items()
+    ])
+
+    # Define the prompt for the LLM
+    prompt = f"""
+    You are an expert in machine learning and model evaluation. 
+    Please analyze the following classification results and provide insights:
+    
+    {formatted_results}
+    
+    Highlight any potential improvements or issues with the results.
+    """
+
+    prompt_template = PromptTemplate(
+        template=prompt,
+        input_variables=["formatted_results"],
+    )
+    question_generator = prompt_template | load_model()
+    result = question_generator.invoke(
+        {
+            "context": formatted_results,
+        }
+    )
+    return result.content
+
 
 
 # Sidebar for inputs
@@ -348,6 +435,9 @@ if "preprocessed_data" not in st.session_state:
     st.session_state["preprocessed_data"] = None
 if "preprocessing_steps_selected" not in st.session_state:
     st.session_state["preprocessing_steps_selected"] = []
+if "results" not in st.session_state:
+    st.session_state["results"] = {}
+
 
 # Only proceed if a file is uploaded
 if uploaded_file:
@@ -399,7 +489,6 @@ if uploaded_file:
                 X, y, test_size=0.2, random_state=42
             )
 
-            # Train and evaluate models
             if st.button("Run Pipeline"):
                 with st.spinner("Training and evaluating models... Please wait."):
                     if not selected_classifiers:
@@ -419,7 +508,7 @@ if uploaded_file:
                             "Random Forest": RandomForestClassifier(),
                             "Gradient Boosting": GradientBoostingClassifier(),
                         }
-                        results = {}
+                        results = {}  # Initialize results
                         y_preds = {}
 
                         # Train and predict for each selected classifier
@@ -453,26 +542,60 @@ if uploaded_file:
                                     y_test, y_pred, average="weighted"
                                 )
 
+                            # Include confusion matrix in results if selected
+                            if "Confusion Matrix" in metrics:
+                                cm = confusion_matrix(y_test, y_pred)
+                                model_metrics["Confusion Matrix"] = cm.tolist()
+
                             results[name] = model_metrics
+
+                        # Save results in session state
+                        st.session_state["results"] = results
 
                         # Display results
                         # st.write(f"## Metrics Results")
                         # for name, model_metrics in results.items():
+                        #     st.write(f"## {name}")
+                        #     for metric_name, metric_value in model_metrics.items():
+                        #         st.write(f"**{metric_name}:** {metric_value:.2f}")
+                        # Display results
                         st.write(f"## Metrics Results")
                         for name, model_metrics in results.items():
                             st.write(f"## {name}")
                             for metric_name, metric_value in model_metrics.items():
-                                st.write(f"**{metric_name}:** {metric_value:.2f}")
+                                if metric_name != "Confusion Matrix":  
+                                    # st.write("**Confusion Matrix:**")
+                                    # st.write(pd.DataFrame(metric_value, index=["Actual Negative", "Actual Positive"], 
+                                    #                                 columns=["Predicted Negative", "Predicted Positive"]))
+                                # else:
+                                    st.write(f"**{metric_name}:** {metric_value:.2f}")  # Only format numerical values
+
 
                         # Plot confusion matrices for each selected classifier
-                        st.write(f"## Confusion Matrix Plot")
-                        for name, y_pred in y_preds.items():
-                            cm = confusion_matrix(y_test, y_pred)
-                            disp = ConfusionMatrixDisplay(
-                                confusion_matrix=cm,
-                                display_labels=["Negative", "Positive"],
-                            ) 
-                            disp.plot(cmap=plt.cm.Blues)
-                            plt.title(f"Confusion Matrix: {name}")
-                            st.pyplot(plt.gcf())
-                            plt.clf()  # Clear the current figure to avoid overlap in next plot
+                        if "Confusion Matrix" in metrics:
+                            st.write(f"## Confusion Matrix Plot")
+                            for name, y_pred in y_preds.items():
+                                cm = confusion_matrix(y_test, y_pred)
+                                disp = ConfusionMatrixDisplay(
+                                    confusion_matrix=cm,
+                                    display_labels=["Negative", "Positive"],
+                                )
+                                disp.plot(cmap=plt.cm.Blues)
+                                plt.title(f"Confusion Matrix: {name}")
+                                st.pyplot(plt.gcf())
+                                plt.clf()  # Clear the current figure to avoid overlap in next plot
+
+
+# Add the button to the sidebar
+if st.sidebar.button("Analyze Results with LLM"):
+    # Check if results are available in session state
+    if "results" in st.session_state and st.session_state["results"]:
+        with st.spinner("Analyzing results with LLM..."):
+            try:
+                llm_analysis = analyze_with_llm(st.session_state["results"])
+                st.write("### LLM Analysis of Results")
+                st.write(llm_analysis)
+            except Exception as e:
+                st.error(f"An error occurred while analyzing with LLM: {e}")
+    else:
+        st.warning("No results available to analyze. Run the pipeline first.")
