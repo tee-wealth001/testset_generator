@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import re
 import streamlit as st
 import nltk
@@ -83,17 +84,29 @@ def preprocess_text(text, steps):
 
 
 # Function to perform sentiment analysis
+# def assign_sentiment(text, method="vader"):
+#     if method == "vader":
+#         analyzer = SentimentIntensityAnalyzer()
+#         score = analyzer.polarity_scores(text)["compound"]
+#         return (
+#             1 if score > 0.05 else 0 if score < -0.05 else 0.5
+#         )
+
+#     elif method == "textblob":
+#         score = TextBlob(text).sentiment.polarity
+#         return 1 if score > 0 else 0 if score < 0 else 0.5
+    
 def assign_sentiment(text, method="vader"):
     if method == "vader":
         analyzer = SentimentIntensityAnalyzer()
         score = analyzer.polarity_scores(text)["compound"]
-        return (
-            "positive" if score > 0.05 else "negative" if score < -0.05 else "neutral"
-        )
+        # Return 1 for positive, 0 for negative
+        return 1 if score > 0.05 else 0
 
     elif method == "textblob":
         score = TextBlob(text).sentiment.polarity
-        return "positive" if score > 0 else "negative" if score < 0 else "neutral"
+        # Return 1 for positive, 0 for negative
+        return 1 if score > 0 else 0
 
 
 # Function to analyze results with LLM
@@ -140,15 +153,67 @@ def analyze_with_llm(results):
     )
     return result.content
 
+# Function to display the DataFrame with the selected columns
+def write_to_df():
+    if "sentiment" not in data.columns:
+        # data["sentiment"] = data[column_to_preprocess].apply(
+        #     lambda x: assign_sentiment(x, selected_classifiers[0])
+        st.dataframe(
+                data[[column_to_preprocess, "preprocessed_text"]]
+            )  # Display three columns
+    else:
+        st.dataframe(
+            data[[column_to_preprocess, "preprocessed_text", "sentiment"]]
+        )
+
 
 # Sidebar for inputs
 st.sidebar.title("Build Your Sentiment Classification Pipeline")
+# uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type=["csv"])
+
+# # Column selection for preprocessing
+# column_to_preprocess = None
+# isCustomAnalyzer = False
+
+# # Check if a file is uploaded
+# if uploaded_file:
+#     st.write("### Dataset Uploaded")
+#     print("begining here")
+#     data = pd.read_csv(uploaded_file)
+#     if "sentiment" not in data.columns:
+#         st.warning("The CSV file must contain a 'sentiment' column.")
+#         isCustomAnalyzer = True
+#     else:
+#         isCustomAnalyzer = False
+# At the start of your script, define all the session state variables that need to be reset
+def reset_session_state():
+    session_states = [
+        "uploaded_data",
+        "preprocessed_data",
+        "sentiment_data",
+        "preprocessing_steps_selected",
+        "selected_analyzer",
+        "results"
+    ]
+    for state in session_states:
+        if state in st.session_state:
+            del st.session_state[state]
+
+# Modify your file uploader section
 uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type=["csv"])
 
-# Column selection for preprocessing
-column_to_preprocess = None
-isCustomAnalyzer = False
+# Check if a file is uploaded
 if uploaded_file:
+    # Get the name of the currently uploaded file
+    file_name = uploaded_file.name
+    
+    # Check if this is a new file
+    if "current_file" not in st.session_state or st.session_state["current_file"] != file_name:
+        # Reset everything if it's a new file
+        reset_session_state()
+        st.session_state["current_file"] = file_name
+    
+    st.write("### Dataset Uploaded")
     data = pd.read_csv(uploaded_file)
     if "sentiment" not in data.columns:
         st.warning("The CSV file must contain a 'sentiment' column.")
@@ -183,9 +248,10 @@ preprocessing_steps = st.sidebar.multiselect(
 # Preprocessing button in the sidebar
 preprocess_btn = st.sidebar.button("Apply Preprocessing")
 
+# Custom analyzer options in the sidebar
 if isCustomAnalyzer:
     st.sidebar.write("### Generate Sentiment with Custom Analyzer")
-    selected_classifiers = st.sidebar.multiselect(
+    selected_analyzer = st.sidebar.selectbox(
         "Choose analyzer:",
         [
             "vader",
@@ -193,6 +259,8 @@ if isCustomAnalyzer:
         ],
     )
 
+    # Custom analyzer button in the sidebar
+    custom_analyzer_btn = st.sidebar.button("Generate Sentiment")
 
 # Classifier and metrics options in the sidebar
 st.sidebar.write("### Select Classifiers and Metrics")
@@ -206,6 +274,8 @@ selected_classifiers = st.sidebar.multiselect(
         "Gradient Boosting",
     ],
 )
+
+# Metrics selection in the sidebar
 metrics = st.sidebar.multiselect(
     "Choose metrics to evaluate your model:",
     ["Accuracy", "Precision", "Recall", "F1 Score", "Confusion Matrix"],
@@ -215,12 +285,17 @@ metrics = st.sidebar.multiselect(
 pipeline_btn = st.sidebar.button("Run Pipeline")
 
 # Initialize session state if not already initialized
+print("reached here")
 if "uploaded_data" not in st.session_state:
     st.session_state["uploaded_data"] = None
 if "preprocessed_data" not in st.session_state:
     st.session_state["preprocessed_data"] = None
+if "sentiment_data" not in st.session_state:
+    st.session_state["sentiment_data"] = None
 if "preprocessing_steps_selected" not in st.session_state:
-    st.session_state["preprocessing_steps_selected"] = []
+    st.session_state["preprocessing_steps_selected"] = ""
+if "selected_analyzer" not in st.session_state:
+    st.session_state["selected_analyzer"] = ""
 if "results" not in st.session_state:
     st.session_state["results"] = {}
 
@@ -232,41 +307,64 @@ if uploaded_file:
     st.write("### Dataset Preview")
     st.write(data.head())
 
-    if "sentiment" not in data.columns:
-        st.warning("The CSV file must contain a 'sentiment' column.")
-    else:
-        # Main content area
-        st.title("Sentiment Classification Pipeline")
+    # if "sentiment" not in data.columns:
+    #     st.warning("The CSV file must contain a 'sentiment' column.")
+    # else:
+    # Main content area
+    st.title("Sentiment Classification Pipeline")
 
-        # Display the preprocessing table if preprocessed data exists
-        if st.session_state["preprocessed_data"] is not None:
-            # Add preprocessed data as a new column in the DataFrame
+    # Display the preprocessing table if preprocessed data exists
+    if st.session_state["preprocessed_data"] is not None:
+        # Add preprocessed data as a new column in the DataFrame
+        data["preprocessed_text"] = st.session_state["preprocessed_data"]
+        st.write("### Preprocessed Data Preview")
+        write_to_df()
+
+    if st.session_state["sentiment_data"] is not None:
+        # Add preprocessed data as a new column in the DataFrame
+        data["sentiment"] = st.session_state["sentiment_data"]
+        st.write("### Sentiment Data Preview")
+        write_to_df()
+
+    # Apply preprocessing when button clicked
+    if preprocess_btn:
+        with st.spinner("Preprocessing... Please wait."):
+            if not preprocessing_steps:
+                st.warning(
+                    "No preprocessing steps selected. The raw text will be used."
+                )
+                st.session_state["preprocessed_data"] = data[column_to_preprocess]
+            else:
+                st.write("### Preprocessing Data...")
+                # Apply preprocessing and store as a new column
+                st.session_state["preprocessed_data"] = data[
+                    column_to_preprocess
+                ].apply(lambda x: preprocess_text(x, preprocessing_steps))
+            # Display the new column in the data
             data["preprocessed_text"] = st.session_state["preprocessed_data"]
-            st.write("### Preprocessed Data Preview")
-            st.dataframe(
-                data[[column_to_preprocess, "preprocessed_text", "sentiment"]]
-            )  # Display three columns
+            write_to_df()
 
-        # Apply preprocessing when button clicked
-        if preprocess_btn:
-            with st.spinner("Preprocessing... Please wait."):
-                if not preprocessing_steps:
-                    st.warning(
-                        "No preprocessing steps selected. The raw text will be used."
-                    )
-                    st.session_state["preprocessed_data"] = data[column_to_preprocess]
+    # Generate sentiment with custom analyzer when button clicked
+    if isCustomAnalyzer:
+        if custom_analyzer_btn: 
+            # Check if the button is clicked
+            with st.spinner("Generating sentiment... Please wait."):
+                if not selected_analyzer:
+                    st.warning("No analyzer selected. Please select at least one analyzer.")
                 else:
-                    st.write("### Preprocessing Data...")
-                    # Apply preprocessing and store as a new column
-                    st.session_state["preprocessed_data"] = data[
-                        column_to_preprocess
-                    ].apply(lambda x: preprocess_text(x, preprocessing_steps))
-                # Display the new column in the data
-                data["preprocessed_text"] = st.session_state["preprocessed_data"]
-                st.write(
-                    data[[column_to_preprocess, "preprocessed_text", "sentiment"]]
-                )  # Display the new dataframe with 3 columns
+                    st.write("### Generating Sentiment with Custom Analyzer...")
+                    st.session_state["sentiment_data"] = data["preprocessed_text"].apply(
+                        lambda x: assign_sentiment(x, selected_analyzer)
+                    )
+                    # Add sentiment as a new column in the DataFrame
+                    data["sentiment"] = st.session_state["sentiment_data"]
+                    st.session_state["uploaded_data"] = data  # Store updated data in session state
+                    write_to_df()
 
+
+
+
+    if "sentiment" in data.columns:
         # Ensure preprocessed data is available before using it in train_test_split
         if st.session_state["preprocessed_data"] is not None:
             X = st.session_state["preprocessed_data"]
@@ -361,6 +459,23 @@ if uploaded_file:
                                 plt.title(f"Confusion Matrix: {name}")
                                 st.pyplot(plt.gcf())
                                 plt.clf()  # Clear the current figure to avoid overlap in next plot
+                        # # Plot confusion matrices for each selected classifier
+                        # if "Confusion Matrix" in metrics:
+                        #     st.write(f"## Confusion Matrix Plot")
+                        #     for name, y_pred in y_preds.items():
+                        #         cm = confusion_matrix(y_test, y_pred)
+                        #         # Get unique labels from the data
+                        #         unique_labels = sorted(np.unique(np.concatenate([y_test, y_pred])))
+                                
+                        #         disp = ConfusionMatrixDisplay(
+                        #             confusion_matrix=cm,
+                        #             display_labels=unique_labels
+                        #         )
+                        #         fig, ax = plt.subplots()
+                        #         disp.plot(ax=ax, cmap=plt.cm.Blues)
+                        #         plt.title(f"Confusion Matrix: {name}")
+                        #         st.pyplot(fig)
+                        #         plt.close(fig)
 
 
 # Add the button to the sidebar
