@@ -48,6 +48,44 @@ huggingfacehub_api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 # nltk.download("stopwords")
 # nltk.download("wordnet")
 
+# Custom CSS for styling the Streamlit app
+st.markdown(
+    """
+    <style>
+    /* Style the sidebar */
+
+    /* Style the buttons */
+    .stButton>button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+        font-size: 16px;
+        transition: 0.3s;
+    }
+    .stButton>button:hover {
+        background-color: #45a049;
+    }
+
+    /* Style the DataFrame display */
+    .stDataFrame {
+        border-radius: 8px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Customize text and font */
+    body {
+        font-family: 'Arial', sans-serif;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+analyzer = SentimentIntensityAnalyzer()
+
 
 # Function to preprocess text
 def preprocess_text(text, steps):
@@ -82,23 +120,9 @@ def preprocess_text(text, steps):
         text = re.sub(r"\s+", " ", text).strip()
     return text
 
-
-# Function to perform sentiment analysis
-# def assign_sentiment(text, method="vader"):
-#     if method == "vader":
-#         analyzer = SentimentIntensityAnalyzer()
-#         score = analyzer.polarity_scores(text)["compound"]
-#         return (
-#             1 if score > 0.05 else 0 if score < -0.05 else 0.5
-#         )
-
-#     elif method == "textblob":
-#         score = TextBlob(text).sentiment.polarity
-#         return 1 if score > 0 else 0 if score < 0 else 0.5
     
 def assign_sentiment(text, method="vader"):
     if method == "vader":
-        analyzer = SentimentIntensityAnalyzer()
         score = analyzer.polarity_scores(text)["compound"]
         # Return 1 for positive, 0 for negative
         return 1 if score > 0.05 else 0
@@ -167,13 +191,48 @@ def write_to_df():
         )
 
 
+# This function takes the confusion matrix (cm) from the cell above and produces all evaluation matrix
+def confusion_metrics (conf_matrix):
+
+    TP = conf_matrix[1][1]
+    TN = conf_matrix[0][0]
+    FP = conf_matrix[0][1]
+    FN = conf_matrix[1][0]
+    st.write('True Positives:', TP)
+    st.write('True Negatives:', TN)
+    st.write('False Positives:', FP)
+    st.write('False Negatives:', FN)
+
+    # calculate accuracy
+    conf_accuracy = (float (TP+TN) / float(TP + TN + FP + FN))
+
+    # calculate mis-classification
+    conf_misclassification = 1- conf_accuracy
+
+    # calculate the sensitivity
+    conf_sensitivity = (TP / float(TP + FN))
+    # calculate the specificity
+    conf_specificity = (TN / float(TN + FP))
+
+    # calculate precision
+    conf_precision = (TN / float(TN + FP))
+    # calculate f_1 score
+    conf_f1 = 2 * ((conf_precision * conf_sensitivity) / (conf_precision + conf_sensitivity))
+    st.write('-'*50)
+    st.write(f'Mis-Classification: {round(conf_misclassification,2)}')
+    st.write(f'Sensitivity: {round(conf_sensitivity,2)}')
+    st.write(f'Specificity: {round(conf_specificity,2)}')
+    st.write(f'Precision: {round(conf_precision,2)}')
+    st.write(f'f_1 Score: {round(conf_f1,2)}')
+
+
 # Sidebar for inputs
 st.sidebar.title("Build Your Sentiment Classification Pipeline")
 # uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type=["csv"])
 
 # # Column selection for preprocessing
 # column_to_preprocess = None
-# isCustomAnalyzer = False
+isCustomAnalyzer = False
 
 # # Check if a file is uploaded
 # if uploaded_file:
@@ -215,6 +274,12 @@ if uploaded_file:
     
     st.write("### Dataset Uploaded")
     data = pd.read_csv(uploaded_file)
+        # Check for null values
+    if data.isnull().values.any():
+        remove_na = st.sidebar.checkbox("Remove NaN values")
+        if remove_na:
+            data = data.dropna()
+
     if "sentiment" not in data.columns:
         st.warning("The CSV file must contain a 'sentiment' column.")
         isCustomAnalyzer = True
@@ -226,63 +291,66 @@ if uploaded_file:
         "Select the column to preprocess:", data.columns
     )
 
-# Preprocessing options in the sidebar
-preprocessing_steps = st.sidebar.multiselect(
-    "Choose preprocessing steps:",
-    [
-        "Convert to lowercase",
-        "Remove punctuation",
-        "Remove URLs",
-        "Remove Mentions",
-        "Remove Hashtags",
-        "Remove Non-Alphabetic",
-        "Expand Contractions",
-        "Remove Emojis",
-        "Remove stopwords",
-        "Lemmatize words",
-        "Stem words",
-        "Remove Extra Whitespaces",
-    ],
-)
-
-# Preprocessing button in the sidebar
-preprocess_btn = st.sidebar.button("Apply Preprocessing")
-
-# Custom analyzer options in the sidebar
-if isCustomAnalyzer:
-    st.sidebar.write("### Generate Sentiment with Custom Analyzer")
-    selected_analyzer = st.sidebar.selectbox(
-        "Choose analyzer:",
+    # Preprocessing options in the sidebar
+    preprocessing_steps = st.sidebar.multiselect(
+        "Choose preprocessing steps:",
         [
-            "vader",
-            "textblob",
+            "Convert to lowercase",
+            "Remove punctuation",
+            "Remove URLs",
+            "Remove Mentions",
+            "Remove Hashtags",
+            "Remove Non-Alphabetic",
+            "Expand Contractions",
+            "Remove Emojis",
+            "Remove stopwords",
+            "Lemmatize words",
+            "Stem words",
+            "Remove Extra Whitespaces",
         ],
     )
 
-    # Custom analyzer button in the sidebar
-    custom_analyzer_btn = st.sidebar.button("Generate Sentiment")
+    # Preprocessing button in the sidebar
+    preprocess_btn = st.sidebar.button("Apply Preprocessing")
 
-# Classifier and metrics options in the sidebar
-st.sidebar.write("### Select Classifiers and Metrics")
-selected_classifiers = st.sidebar.multiselect(
-    "Choose classifiers:",
-    [
-        "Logistic Regression",
-        "Naive Bayes",
-        "Support Vector Machine",
-        "Random Forest",
-        "Gradient Boosting",
-    ],
-)
+    # Custom analyzer options in the sidebar
+    if isCustomAnalyzer:
+        st.sidebar.write("### Generate Sentiment with Custom Analyzer")
+        selected_analyzer = st.sidebar.selectbox(
+            "Choose analyzer:",
+            [
+                "vader",
+                "textblob",
+            ],
+        )
 
-# Metrics selection in the sidebar
-metrics = st.sidebar.multiselect(
-    "Choose metrics to evaluate your model:",
-    ["Accuracy", "Precision", "Recall", "F1 Score", "Confusion Matrix"],
-)
+        # Custom analyzer button in the sidebar
+        custom_analyzer_btn = st.sidebar.button("Generate Sentiment")
 
-# Run pipeline button in the sidebar
-pipeline_btn = st.sidebar.button("Run Pipeline")
+    # Classifier and metrics options in the sidebar
+    st.sidebar.write("### Select Classifiers and Metrics")
+    selected_classifiers = st.sidebar.multiselect(
+        "Choose classifiers:",
+        [
+            "Logistic Regression",
+            "Naive Bayes",
+            "Support Vector Machine",
+            "Random Forest",
+            "Gradient Boosting",
+        ],
+    )
+
+    # Metrics selection in the sidebar
+    metrics = st.sidebar.multiselect(
+        "Choose metrics to evaluate your model:",
+        ["Accuracy", "Precision", "Recall", "F1 Score", "Confusion Matrix"],
+    )
+
+    # Run pipeline button in the sidebar
+    pipeline_btn = st.sidebar.button("Run Pipeline")
+
+    # Analyze with LLM button in the sidebar
+    analyze_with_llm_btn = st.sidebar.button("Analyze Results with LLM")
 
 # Initialize session state if not already initialized
 print("reached here")
@@ -353,9 +421,10 @@ if uploaded_file:
                     st.warning("No analyzer selected. Please select at least one analyzer.")
                 else:
                     st.write("### Generating Sentiment with Custom Analyzer...")
-                    st.session_state["sentiment_data"] = data["preprocessed_text"].apply(
-                        lambda x: assign_sentiment(x, selected_analyzer)
-                    )
+                    # st.session_state["sentiment_data"] = data["preprocessed_text"].apply(
+                    #     lambda x: assign_sentiment(x, selected_analyzer)
+                    # )
+                    st.session_state["sentiment_data"] = data["preprocessed_text"].apply(assign_sentiment, method=selected_analyzer)
                     # Add sentiment as a new column in the DataFrame
                     data["sentiment"] = st.session_state["sentiment_data"]
                     st.session_state["uploaded_data"] = data  # Store updated data in session state
@@ -459,6 +528,8 @@ if uploaded_file:
                                 plt.title(f"Confusion Matrix: {name}")
                                 st.pyplot(plt.gcf())
                                 plt.clf()  # Clear the current figure to avoid overlap in next plot
+                                st.write(f"**{name}:** \n")
+                                confusion_metrics(cm)
                         # # Plot confusion matrices for each selected classifier
                         # if "Confusion Matrix" in metrics:
                         #     st.write(f"## Confusion Matrix Plot")
@@ -478,16 +549,16 @@ if uploaded_file:
                         #         plt.close(fig)
 
 
-# Add the button to the sidebar
-if st.sidebar.button("Analyze Results with LLM"):
-    # Check if results are available in session state
-    if "results" in st.session_state and st.session_state["results"]:
-        with st.spinner("Analyzing results with LLM..."):
-            try:
-                llm_analysis = analyze_with_llm(st.session_state["results"])
-                st.write("### LLM Analysis of Results")
-                st.write(llm_analysis)
-            except Exception as e:
-                st.error(f"An error occurred while analyzing with LLM: {e}")
-    else:
-        st.warning("No results available to analyze. Run the pipeline first.")
+    # Add the button to the sidebar
+    if analyze_with_llm_btn:
+        # Check if results are available in session state
+        if "results" in st.session_state and st.session_state["results"]:
+            with st.spinner("Analyzing results with LLM..."):
+                try:
+                    llm_analysis = analyze_with_llm(st.session_state["results"])
+                    st.write("### LLM Analysis of Results")
+                    st.write(llm_analysis)
+                except Exception as e:
+                    st.error(f"An error occurred while analyzing with LLM: {e}")
+        else:
+            st.warning("No results available to analyze. Run the pipeline first.")
