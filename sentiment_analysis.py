@@ -170,6 +170,9 @@ preprocessing_steps = st.sidebar.multiselect(
     ],
 )
 
+# Preprocessing button in the sidebar
+preprocess_btn = st.sidebar.button("Apply Preprocessing")
+
 # Classifier and metrics options in the sidebar
 st.sidebar.write("### Select Classifiers and Metrics")
 selected_classifiers = st.sidebar.multiselect(
@@ -186,6 +189,9 @@ metrics = st.sidebar.multiselect(
     "Choose metrics to evaluate your model:",
     ["Accuracy", "Precision", "Recall", "F1 Score", "Confusion Matrix"],
 )
+
+# Run pipeline button in the sidebar
+pipeline_btn = st.sidebar.button("Run Pipeline")
 
 # Initialize session state if not already initialized
 if "uploaded_data" not in st.session_state:
@@ -221,7 +227,7 @@ if uploaded_file:
             )  # Display three columns
 
         # Apply preprocessing when button clicked
-        if st.button("Apply Preprocessing"):
+        if preprocess_btn:
             with st.spinner("Preprocessing... Please wait."):
                 if not preprocessing_steps:
                     st.warning(
@@ -248,7 +254,7 @@ if uploaded_file:
                 X, y, test_size=0.2, random_state=42
             )
 
-            if st.button("Run Pipeline"):
+            if pipeline_btn:
                 with st.spinner("Training and evaluating models... Please wait."):
                     if not selected_classifiers:
                         st.warning(
@@ -314,7 +320,7 @@ if uploaded_file:
                         # Display results
                         st.write(f"## Metrics Results")
                         for name, model_metrics in results.items():
-                            st.write(f"## {name}")
+                            st.write(f"### {name}")
                             for metric_name, metric_value in model_metrics.items():
                                 if metric_name != "Confusion Matrix":
                                     st.write(
