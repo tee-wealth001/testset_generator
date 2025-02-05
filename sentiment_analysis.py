@@ -87,11 +87,14 @@ def assign_sentiment(text, method="vader"):
     if method == "vader":
         analyzer = SentimentIntensityAnalyzer()
         score = analyzer.polarity_scores(text)["compound"]
-        return "positive" if score > 0.05 else "negative" if score < -0.05 else "neutral"
-    
+        return (
+            "positive" if score > 0.05 else "negative" if score < -0.05 else "neutral"
+        )
+
     elif method == "textblob":
         score = TextBlob(text).sentiment.polarity
         return "positive" if score > 0 else "negative" if score < 0 else "neutral"
+
 
 # Function to analyze results with LLM
 def analyze_with_llm(results):
@@ -144,8 +147,15 @@ uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type=["csv"])
 
 # Column selection for preprocessing
 column_to_preprocess = None
+isCustomAnalyzer = False
 if uploaded_file:
     data = pd.read_csv(uploaded_file)
+    if "sentiment" not in data.columns:
+        st.warning("The CSV file must contain a 'sentiment' column.")
+        isCustomAnalyzer = True
+    else:
+        isCustomAnalyzer = False
+
     st.sidebar.write("### Select the Column to Preprocess")
     column_to_preprocess = st.sidebar.selectbox(
         "Select the column to preprocess:", data.columns
@@ -172,6 +182,17 @@ preprocessing_steps = st.sidebar.multiselect(
 
 # Preprocessing button in the sidebar
 preprocess_btn = st.sidebar.button("Apply Preprocessing")
+
+if isCustomAnalyzer:
+    st.sidebar.write("### Generate Sentiment with Custom Analyzer")
+    selected_classifiers = st.sidebar.multiselect(
+        "Choose analyzer:",
+        [
+            "vader",
+            "textblob",
+        ],
+    )
+
 
 # Classifier and metrics options in the sidebar
 st.sidebar.write("### Select Classifiers and Metrics")
@@ -212,7 +233,7 @@ if uploaded_file:
     st.write(data.head())
 
     if "sentiment" not in data.columns:
-        st.error("The CSV file must contain a 'sentiment' column.")
+        st.warning("The CSV file must contain a 'sentiment' column.")
     else:
         # Main content area
         st.title("Sentiment Classification Pipeline")
