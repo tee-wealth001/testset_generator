@@ -10,6 +10,196 @@ from llm_entity import TASK_LLM
 def load_model():
     return TASK_LLM  # Load LLM only once
 
+#Css styles
+def load_css():
+    st.markdown(
+        """
+<style>
+/* Global Styles */
+
+
+/* Title and Header Styles */
+.stTitle {
+    color: #4CAF50 !important;
+    font-size: 3rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 2rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+h1 {
+    color: #4CAF50 !important;
+}
+
+/* Sidebar Styles */
+.css-1d391kg {
+    background-color: #2d2d2d;
+    padding: 2rem 1rem;
+    border-right: 1px solid #3d3d3d;
+}
+
+.sidebar .stButton > button {
+    width: 100%;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 0.75rem;
+    border-radius: 5px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.sidebar .stButton > button:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Job Card Styles */
+.job-card {
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.job-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+/* Button Styles */
+.stButton > button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.stButton > button:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+}
+
+/* Analysis Panel Styles */
+.fixed-analysis {
+    border-left: 1px solid #3d3d3d !important;
+    padding: 2rem !important;
+    box-shadow: -4px 0 8px rgba(0,0,0,0.1);
+}
+
+.fixed-analysis h3 {
+    color: #4CAF50;
+    margin-bottom: 1rem;
+}
+
+/* File Uploader Styles */
+.stFileUploader {
+    border-radius: 8px;
+    padding: 1rem;
+    border: 2px dashed #4CAF50;
+}
+
+/* Pagination Styles */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.pagination button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Link Button Styles */
+.stLinkButton > button {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.stLinkButton > button:hover {
+    background-color: #1976D2;
+    transform: translateY(-2px);
+}
+
+/* Loading Spinner Styles */
+.stSpinner {
+    color: #4CAF50 !important;
+}
+
+/* Alert/Warning Styles */
+.stAlert {
+    border-radius: 5px;
+    border-left: 4px solid #0abb59;
+}
+
+/* Success Message Styles */
+.success-message {
+    background-color: rgba(76, 175, 80, 0.1);
+    border-left: 4px solid #4CAF50;
+    padding: 1rem;
+    border-radius: 5px;
+    margin: 1rem 0;
+}
+
+/* Error Message Styles */
+.error-message {
+    background-color: rgba(244, 67, 54, 0.1);
+    border-left: 4px solid #f44336;
+    padding: 1rem;
+    border-radius: 5px;
+    margin: 1rem 0;
+}
+
+/* Caption Styles */
+.stCaption {
+    color: #999;
+    font-size: 0.9rem;
+}
+
+/* Divider Styles */
+.stDivider {
+    border-color: #3d3d3d;
+    margin: 2rem 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .fixed-analysis {
+        position: relative !important;
+        width: 100% !important;
+        margin-top: 2rem;
+    }
+    
+    .stTitle {
+        font-size: 2rem;
+    }
+}
+</style>
+    """,
+        unsafe_allow_html=True,
+    )
+
+
+
 
 st.set_page_config(page_title="Synthetic Testset Generator", page_icon="📝", layout="wide")
 
@@ -192,3 +382,5 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+load_css()
